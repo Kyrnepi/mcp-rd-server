@@ -4,7 +4,7 @@ import logging
 
 import uvicorn
 
-from src.auth import BearerAuthMiddleware
+from src.auth import BearerAuthMiddleware, RateLimitMiddleware
 from src.config import config
 from src.server import mcp
 
@@ -16,10 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 def create_app():
-    """Build the ASGI application with authentication middleware."""
+    """Build the ASGI application with middleware stack."""
     config.validate()
     app = mcp.streamable_http_app()
+    # Middleware execution order is bottom-up: RateLimit → Auth → App
+    # Origin/Host validation is handled by the SDK's TransportSecuritySettings
     app.add_middleware(BearerAuthMiddleware)
+    app.add_middleware(RateLimitMiddleware)
     return app
 
 

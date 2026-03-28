@@ -1,7 +1,20 @@
 import os
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_allowed_origins(raw: str) -> Optional[set[str]]:
+    """Parse MCP_ALLOWED_ORIGINS env var.
+
+    Returns None (allow all) when the value is empty or '*'.
+    Otherwise returns a set of allowed origin strings.
+    """
+    raw = raw.strip()
+    if not raw or raw == "*":
+        return None
+    return {o.strip() for o in raw.split(",") if o.strip()}
 
 
 class Config:
@@ -19,6 +32,17 @@ class Config:
         )
         self.RD_SERVER_PORT: int = int(os.environ.get("RD_SERVER_PORT", "3000"))
         self.RD_SERVER_HOST: str = os.environ.get("RD_SERVER_HOST", "0.0.0.0")
+
+        # Origin validation (None = allow all, set = restrict)
+        self.MCP_ALLOWED_ORIGINS: Optional[set[str]] = _parse_allowed_origins(
+            os.environ.get("MCP_ALLOWED_ORIGINS", "*")
+        )
+
+        # Rate limiting
+        self.MCP_RATE_LIMIT: int = int(os.environ.get("MCP_RATE_LIMIT", "100"))
+        self.MCP_RATE_LIMIT_WINDOW: int = int(
+            os.environ.get("MCP_RATE_LIMIT_WINDOW", "60")
+        )
 
     def validate(self):
         """Log warnings for missing critical configuration."""
